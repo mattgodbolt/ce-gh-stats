@@ -7,6 +7,7 @@ name = "gh-stats"
 version = "0.0.1"
 description = "Compiler Explorer GitHub stats"
 authors = ["Matt Godbolt <matt@godbolt.org>", "partouf <partouf@gmail.com>"]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4"

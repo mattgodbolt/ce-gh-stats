@@ -14,13 +14,17 @@ make clean         # Remove uv, virtualenv, and lockfile
 
 # Run the stats collector (requires GITHUB_TOKEN env var or --access-token):
 uv run python main.py stats stats/compiler-explorer.json
+
+# Generate graphs from collected stats (no token needed):
+uv run python main.py graph stats/compiler-explorer.json graphs/
 ```
 
 ## Architecture
 
 This is a single-file Python CLI (`main.py`) using Click and PyGithub:
-- `cli()` - Click group; sets up GitHub client from `--access-token` or `GITHUB_TOKEN` env var
+- `cli()` - Click group; sets up GitHub client (lazily) from `--access-token` or `GITHUB_TOKEN` env var
 - `stats()` - Fetches repo metadata (issues by label/state, languages, stars, forks, watchers, head revision) and appends one JSON object per line to the output file
+- `graph()` - Reads NDJSON stats file and generates time-series graphs to an output directory (no GitHub token needed)
 
 The stats JSON files are append-only (one JSON object per line, not a JSON array). Each line is a complete snapshot.
 

@@ -11,7 +11,14 @@ import typing
 
 @dataclass
 class Context:
-    github: Github
+    access_token: str
+    _github: typing.Optional[Github] = None
+
+    @property
+    def github(self) -> Github:
+        if self._github is None:
+            self._github = Github(self.access_token)
+        return self._github
 
 
 @click.group()
@@ -20,7 +27,7 @@ class Context:
     "--access-token", default=os.getenv("GITHUB_TOKEN"), help="token to use (defaults to env var GITHUB_TOKEN)"
 )
 def cli(ctx, access_token: str):
-    ctx.obj = Context(github=Github(access_token))
+    ctx.obj = Context(access_token=access_token)
 
 
 @cli.command()
@@ -52,6 +59,59 @@ def stats(ctx: Context, output: typing.TextIO, organization: str, project: str) 
     )
     json.dump(result, output)
     output.write("\n")
+
+
+@cli.command()
+@click.argument("input_file", type=click.Path(exists=True))
+@click.argument("output_dir", type=click.Path())
+def graph(input_file: str, output_dir: str) -> None:
+    """Generate graphs from collected stats."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+
+    CE_GREEN = "#67c52a"
+    CE_DARK = "#282828"
+    CE_LIGHT_GREY = "#aaaaaa"
+
+    dates = []
+    counts = []
+    with open(input_file) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            record = json.loads(line)
+            if "as_of" not in record or "open_issues_count" not in record:
+                continue
+            dates.append(datetime.datetime.fromisoformat(record["as_of"]))
+            counts.append(record["open_issues_count"])
+
+    plt.style.use("seaborn-v0_8")
+    fig, ax = plt.subplots(figsize=(12, 5))
+    fig.set_facecolor(CE_DARK)
+    ax.set_facecolor(CE_DARK)
+    ax.plot(dates, counts, linewidth=1.5, color=CE_GREEN)
+    ax.set_title("Compiler Explorer — Open Issues Over Time", color="white", fontsize=14)
+    ax.set_xlabel("Date", color=CE_LIGHT_GREY)
+    ax.set_ylabel("Open Issues", color=CE_LIGHT_GREY)
+    ax.tick_params(colors=CE_LIGHT_GREY)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+    fig.autofmt_xdate()
+    ax.grid(True, color=CE_LIGHT_GREY, alpha=0.2)
+    for spine in ax.spines.values():
+        spine.set_color(CE_LIGHT_GREY)
+        spine.set_alpha(0.3)
+    fig.tight_layout()
+
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out / "open-issues.png", dpi=150, facecolor=CE_DARK)
+    plt.close(fig)
+    click.echo(f"Saved {out / 'open-issues.png'}")
 
 
 if __name__ == "__main__":

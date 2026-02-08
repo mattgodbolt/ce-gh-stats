@@ -21,6 +21,8 @@ jobs:
         run: make deps
       - name: Update stats
         run: uv run python main.py --access-token ${{ secrets.GITHUB_TOKEN }} stats stats/compiler-explorer.json
+      - name: Generate graphs
+        run: uv run python main.py graph stats/compiler-explorer.json graphs/
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v4
         with:

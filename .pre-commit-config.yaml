@@ -1,0 +1,24 @@
+---
+exclude: \.idea/
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^stats/
+      - id: end-of-file-fixer
+        exclude: ^stats/
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ["--maxkb=50"]
+        exclude: ^(stats|graphs)/
+      - id: mixed-line-ending
+      - id: check-toml
+      - id: detect-private-key
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.9
+    hooks:
+      - id: ruff
+        args: [--fix, --preview]
+      - id: ruff-format
+        args: [--preview]

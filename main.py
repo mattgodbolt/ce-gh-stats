@@ -12,7 +12,7 @@ import typing
 @dataclass
 class Context:
     access_token: str
-    _github: typing.Optional[Github] = None
+    _github: Github | None = None
 
     @property
     def github(self) -> Github:

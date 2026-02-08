@@ -30,7 +30,7 @@ The stats JSON files are append-only (one JSON object per line, not a JSON array
 
 ## Code Style
 
-- Linter/formatter: ruff (120-char line length, targeting Python 3.10)
-- Python version: >=3.9
+- Linter/formatter: ruff (120-char line length, targeting Python 3.13)
+- Python version: >=3.13
 - Dependencies managed via uv (virtualenv lives in `.venv/`)
 - Pre-commit hooks: `pre-commit install` (requires globally-installed `pre-commit`)

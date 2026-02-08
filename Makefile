@@ -1,29 +1,33 @@
-export POETRY_HOME=$(CURDIR)/.poetry
-POETRY:=$(POETRY_HOME)/bin/poetry
-POETRY_VENV=$(CURDIR)/.venv
-POETRY_DEPS:=$(POETRY_VENV)/.deps
-SYS_PYTHON:=$(shell env PATH='/bin:/usr/bin:/usr/local/bin:$(PATH)' bash -c "command -v python3.11 || command -v python3.10 || command -v python3.9 || echo .python-not-found")
-export PYTHONPATH=$(CURDIR)/bin
+# Use system uv if available, otherwise install locally
+UV_SYSTEM:=$(shell command -v uv 2>/dev/null)
+UV_BIN:=$(if $(UV_SYSTEM),$(UV_SYSTEM),$(CURDIR)/.uv/uv)
+UV_VENV:=$(CURDIR)/.venv
+UV_DEPS:=$(UV_VENV)/.deps
 
 .PHONY: help
 help: # with thanks to Ben Rady
 	@grep -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-$(SYS_PYTHON):
-	@echo "Python 3.9 or 3.10 not found on path. Please install (sudo apt install python3.9 or similar)"
-	@exit 1
+$(CURDIR)/.uv/uv:
+	@echo "Installing uv..."
+	@mkdir -p $(dir $@)
+	@curl -LsSf https://astral.sh/uv/install.sh | UV_NO_MODIFY_PATH=1 UV_INSTALL_DIR=$(CURDIR)/.uv sh -s
+
+# Only require local uv installation if system uv is not available
+# When UV_SYSTEM is set, UV_BIN points to the system uv, so no dependency needed
+# When UV_SYSTEM is empty, UV_BIN points to .uv/uv, but we don't want a circular dependency
+ifneq ($(UV_SYSTEM),)
+$(UV_BIN):
+	@true
+endif
 
 .PHONY: clean
 clean:  ## Cleans up everything
-	rm -rf $(POETRY_HOME) $(POETRY_VENV)
+	rm -rf $(CURDIR)/.uv $(UV_VENV) uv.lock
 
-.PHONY: deps poetry
-deps: $(POETRY) $(POETRY_DEPS)  ## Installs and configures dependencies
-poetry: $(POETRY)
-$(POETRY): $(SYS_PYTHON)
-	curl -sSL https://install.python-poetry.org | $(SYS_PYTHON) -
-	@touch $@
+.PHONY: deps
+deps: $(UV_BIN) $(UV_DEPS)  ## Installs and configures dependencies
 
-$(POETRY_DEPS): $(POETRY) pyproject.toml poetry.lock
-	$(POETRY) install --sync
+$(UV_DEPS): $(UV_BIN) pyproject.toml
+	$(UV_BIN) sync --no-install-project
 	@touch $@
